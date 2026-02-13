@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="VATX - Professional Tax & VAT Consultant | Bangladesh Income Tax Calculator 2025-26"/>
+    <meta name="keywords" content="tax calculator, VAT, Bangladesh tax, income tax 2025-26"/>
+    <meta name="author" content="VATX"/>
+    <meta property="og:title" content="VATX - Professional Tax Calculator"/>
+    <meta property="og:description" content="Calculate your income tax with our professional tax calculator"/>
+    <title>VATX - Professional Tax & VAT Consultant | Bangladesh</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    
+    <!-- AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxxxxxx"></script>
+    
+    <style>
+    /* ===== VATX Professional Theme 2025-26 ===== */
+    :root {
+        --primary-green: #10b981;
+        --primary-dark: #059669;
+        --secondary-blue: #3b82f6;
+        --secondary-light: #60a5fa;
+        --dark-navy: #0f172a;
+        --light-gray: #f8fafc;
+        --text-dark: #1e293b;
+        --text-gray: #64748b;
+        --border-color: #e2e8f0;
+        --success-bg: #f0fdf4;
+        --error-bg: #fef2f2;
+        --white: #ffffff;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        --transition: all 0.3s ease;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+        color: var(--text-dark);
+        background: var(--light-gray);
+        overflow-x: hidden;
+    }
+
+    /* ===== CONTACT BAR ===== */
+    .contact-bar {
+        background: linear-gradient(90deg, var(--dark-navy), #1e3a8a);
+        color: var(--white);
+        padding: 12px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: var(--shadow-md);
+    }
+
+    .contact-bar .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .contact-info {
+        display: flex;
+        gap: 25px;
+        flex-wrap: wrap;
+    }
+
+    .contact-bar a {
+        color: var(--white);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: var(--transition);
+    }
+
+    .contact-bar a:hover {
+        color: var(--primary-green);
+        transform: translateX(3px);
+    }
+
+    .trust-badge {
+        font-size: 12px;
+        background: rgba(255,255,255,0.1);
+        padding: 4px 12px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-blue) 100%);
+        color: var(--white);
+        padding: 80px 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+
+    .header h1 {
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .header p {
+        font-size: 18px;
+        font-weight: 300;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .header-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 15px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ===== ADVERTISEMENT SECTION TOP ===== */
+    .ad-section-top {
+        max-width: 1400px;
+        margin: 30px auto;
+        padding: 0 20px;
+    }
+
+    .ad-container {
+        background: var(--white);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        color: var(--text-gray);
+        font-size: 12px;
+        min-height: 280px;
+    }
+
+    /* ===== MAIN WRAPPER ===== */
+    .main-wrapper {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 30px;
+        margin: 40px auto;
+        max-width: 1400px;
+        padding: 0 20px;
+    }
+
+    .main-content {
+        background: var(--white);
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition);
+    }
+
+    .main-content:hover {
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* ===== CALCULATOR SECTION ===== */
+    .calculator-section {
+        margin-bottom: 40px;
+        padding: 35px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--white) 0%, #f9fafb 100%);
+        transition: var(--transition);
+    }
+
+    .calculator-section:hover {
+        border-color: var(--primary-green);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+    }
+
+    .calculator-section h2 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 25px;
+        color: var(--dark-navy);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .calc-icon {
+        width: 35px;
+        height: 35px;
+        background: var(--primary-green);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+    }
+
+    .calc-group {
+        margin-bottom: 22px;
+    }
+
+    .calc-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-dark);
+        font-size: 15px;
+    }
+
+    .calc-group .help-text {
+        font-size: 12px;
+        color: var(--text-gray);
+        margin-top: 4px;
+    }
+
+    .calc-group input,
+    .calc-group select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 15px;
+        transition: var(--transition);
+        background: var(--white);
+    }
+
+    .calc-group input:focus,
+    .calc-group select:focus {
+        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .calc-btn {
+        background: linear-gradient(135deg, var(--primary-green), var(--primary-dark));
+        color: white;
+        border: none;
+        padding: 16px;
+        cursor: pointer;
+        width: 100%;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        transition: var(--transition);
+        box-shadow: var(--shadow-md);
+    }
+
+    .calc-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .calc-btn:active {
+        transform: translateY(0);
+    }
+
+    .calc-result {
+        margin-top: 25px;
+        padding: 25px;
+        background: var(--success-bg);
+        border-left: 5px solid var(--primary-green);
+        border-radius: 8px;
+        display: none;
+        animation: slideIn 0.3s ease;
+    }
+
+    .calc-result.error {
+        background: var(--error-bg);
+        border-left-color: #ef4444;
+    }
+
+    .calc-result strong {
+        color: var(--dark-navy);
+        display: block;
+        margin-bottom: 8px;
+        font-size: 16px;
+    }
+
+    .calc-result-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-green);
+        margin-top: 10px;
+    }
+
+    .calc-result.error .calc-result-value {
+        color: #ef4444;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .sidebar-card {
+        background: var(--white);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition);
+    }
+
+    .sidebar-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-5px);
+    }
+
+    .sidebar-card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        color: var(--dark-navy);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sidebar-card p {
+        font-size: 14px;
+        line-height: 1.8;
+        color: var(--text-gray);
+    }
+
+    .sidebar-card a {
+        color: var(--primary-green);
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .sidebar-card a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .office-address {
+        background: linear-gradient(135deg, var(--primary-green), var(--primary-dark));
+        color: white;
+    }
+
+    .office-address p,
+    .office-address a {
+        color: white;
+    }
+
+    .office-address a:hover {
+        opacity: 0.9;
+    }
+
+    /* ===== AD SIDEBAR ===== */
+    .ad-sidebar {
+        background: var(--white);
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        text-align: center;
+        color: var(--text-gray);
+        font-size: 12px;
+        min-height: 600px;
+    }
+
+    /* ===== BLOG SECTION ===== */
+    .blog-section {
+        margin-top: 40px;
+        padding-top: 40px;
+        border-top: 2px solid var(--border-color);
+    }
+
+    .blog-section h2 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--dark-navy);
+    }
+
+    .blog-post {
+        padding: 20px;
+        background: #fafbfc;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        transition: var(--transition);
+        border-left: 4px solid var(--border-color);
+    }
+
+    .blog-post:hover {
+        border-left-color: var(--primary-green);
+        background: #f0fdf4;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+        background: linear-gradient(90deg, var(--dark-navy), #1e3a8a);
+        color: var(--white);
+        padding: 50px 20px 30px;
+        margin-top: 60px;
+    }
+
+    .footer-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 40px;
+        margin-bottom: 40px;
+    }
+
+    .footer-section h4 {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    .footer-section ul {
+        list-style: none;
+    }
+
+    .footer-section ul li {
+        margin-bottom: 10px;
+    }
+
+    .footer-section a {
+        color: rgba(255,255,255,0.8);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .footer-section a:hover {
+        color: var(--primary-green);
+    }
+
+    .footer-bottom {
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 20px;
+        text-align: center;
+        font-size: 14px;
+        color: rgba(255,255,255,0.7);
+    }
+
+    .footer-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.1);
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin: 5px;
+        font-size: 12px;
+    }
+
+    /* ===== RESPONSIVE DESIGN ===== */
+    @media (max-width: 1024px) {
+        .main-wrapper {
+            grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+            grid-column: 1;
+            flex-direction: row;
+        }
+
+        .header h1 {
+            font-size: 36px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .contact-bar .container {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .contact-info {
+            width: 100%;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header {
+            padding: 50px 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+        }
+
+        .header p {
+            font-size: 16px;
+        }
+
+        .main-content,
+        .calculator-section {
+            padding: 25px;
+        }
+
+        .calculator-section h2 {
+            font-size: 22px;
+        }
+
+        .sidebar {
+            flex-direction: column;
+        }
+
+        .footer-content {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .contact-bar .container {
+            padding: 0 10px;
+        }
+
+        .contact-bar a {
+            font-size: 12px;
+        }
+
+        .header {
+            padding: 40px 15px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .main-wrapper {
+            padding: 0 15px;
+            gap: 20px;
+        }
+
+        .main-content,
+        .calculator-section {
+            padding: 20px;
+        }
+
+        .calculator-section h2 {
+            font-size: 18px;
+        }
+
+        .calc-btn {
+            padding: 14px;
+            font-size: 14px;
+        }
+    }
+
+    /* ===== UTILITY CLASSES ===== */
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .mt-20 {
+        margin-top: 20px;
+    }
+
+    .disclaimer {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 25px;
+        font-size: 13px;
+        color: #92400e;
+    }
+
+    .disclaimer strong {
+        color: #b45309;
+    }
+    </style>
+</head>
+
+<body>
+    <!-- ===== CONTACT BAR ===== -->
+    <div class="contact-bar">
+        <div class="container">
+            <div class="contact-info">
+                <a href="tel:+8801917179881">📞 +880 1917-179881</a>
+                <a href="mailto:shihab71284@gmail.com">📧 shihab71284@gmail.com</a>
+                <span class="trust-badge">✓ Licensed Consultant</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <div class="header">
+        <h1>VATX</h1>
+        <p>Professional Tax & VAT Consultant | Income Tax Act 2023</p>
+        <div class="header-badge">Bangladesh | Est. 2024 | ISO Certified</div>
+    </div>
+
+    <!-- ===== TOP ADVERTISEMENT ===== -->
+    <div class="ad-section-top">
+        <div class="ad-container">
+            <!-- Google AdSense - Replace with your ad code -->
+            <ins class="adsbygoogle"
+                style="display:block"
+                data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
+                data-ad-slot="1234567890"
+                data-ad-format="horizontal"
+                data-full-width-responsive="true"></ins>
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-wrapper">
+        <div class="main-content">
+            <!-- ===== CALCULATOR SECTION ===== -->
+            <div class="calculator-section">
+                <h2>
+                    <span class="calc-icon">🧮</span>
+                    Income Tax Calculator 2025-26
+                </h2>
+                
+                <div class="calc-group">
+                    <label>Taxpayer Category</label>
+                    <select id="taxType">
+                        <option value="375000">General Male (BDT 3,75,000)</option>
+                        <option value="425000">Female / Senior Citizen 65+ (BDT 4,25,000)</option>
+                        <option value="500000">Disabled Person (BDT 5,00,000)</option>
+                    </select>
+                    <div class="help-text">Select your applicable tax exemption threshold</div>
+                </div>
+
+                <div class="calc-group">
+                    <label>Annual Taxable Income (BDT)</label>
+                    <input 
+                        id="income" 
+                        placeholder="e.g. 600,000" 
+                        type="number"
+                        min="0"
+                        step="1000"
+                    />
+                    <div class="help-text">Enter your total annual income before exemption</div>
+                </div>
+
+                <button class="calc-btn" onclick="calculateTax()">
+                    📊 Calculate My Tax
+                </button>
+
+                <div class="calc-result" id="taxResult"></div>
+
+                <div class="disclaimer">
+                    <strong>⚠️ Disclaimer:</strong> This calculator provides estimates based on Income Tax Act 2023. For accurate calculations and professional advice, please consult our tax consultants. Results are for informational purposes only.
+                </div>
+            </div>
+
+            <!-- ===== BLOG SECTION ===== -->
+            <div class="blog-section">
+                <h2>📝 Latest Tax Updates & Articles</h2>
+                <div class="blog-post">
+                    <h3>Income Tax Slabs 2025-26</h3>
+                    <p>Understanding the new tax brackets and how they affect your filing...</p>
+                    <a href="#" style="color: var(--primary-green); font-weight: 600;">Read More →</a>
+                </div>
+                <div class="blog-post">
+                    <h3>VAT Compliance Requirements</h3>
+                    <p>Essential documentation and compliance steps for VAT registration...</p>
+                    <a href="#" style="color: var(--primary-green); font-weight: 600;">Read More →</a>
+                </div>
+                <div class="blog-post">
+                    <h3>Tax Deductions You Might Miss</h3>
+                    <p>Maximize your tax benefits by claiming eligible deductions...</p>
+                    <a href="#" style="color: var(--primary-green); font-weight: 600;">Read More →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SIDEBAR ===== -->
+        <div class="sidebar">
+            <!-- Office Address Card -->
+            <div class="sidebar-card office-address">
+                <h3>🏢 Office Address</h3>
+                <p>Alkaran, Sadarghat<br>Chittagong<br>Bangladesh</p>
+                <p style="margin-top: 15px; font-size: 13px;">
+                    <a href="tel:+8801917179881">📞 Call Us</a> | 
+                    <a href="mailto:shihab71284@gmail.com">📧 Email</a>
+                </p>
+            </div>
+
+            <!-- Service Features -->
+            <div class="sidebar-card">
+                <h3>✨ Our Services</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 12px;">✓ Income Tax Filing</li>
+                    <li style="margin-bottom: 12px;">✓ VAT Registration</li>
+                    <li style="margin-bottom: 12px;">✓ Tax Audit Support</li>
+                    <li style="margin-bottom: 12px;">✓ Business Consultation</li>
+                    <li style="margin-bottom: 12px;">✓ Compliance Services</li>
+                </ul>
+            </div>
+
+            <!-- Working Hours -->
+            <div class="sidebar-card">
+                <h3>🕐 Business Hours</h3>
+                <p>Monday - Friday<br>09:00 AM - 05:00 PM</p>
+                <p style="margin-top: 10px; font-size: 13px;">Saturday: 10:00 AM - 02:00 PM<br>Sunday: Closed</p>
+            </div>
+
+            <!-- Sidebar Advertisement -->
+            <div class="ad-sidebar">
+                <!-- Google AdSense - Replace with your ad code -->
+                <ins class="adsbygoogle"
+                    style="display:block"
+                    data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
+                    data-ad-slot="9876543210"
+                    data-ad-format="vertical"
+                    data-full-width-responsive="true"></ins>
+                <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About VATX</h4>
+                <p>Your trusted partner in professional tax and VAT consultation. We provide comprehensive tax solutions for individuals and businesses in Bangladesh.</p>
+            </div>
+
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#calculator">Tax Calculator</a></li>
+                    <li><a href="#services">Our Services</a></li>
+                    <li><a href="#blog">Blog</a></li>
+                    <li><a href="#contact">Contact Us</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Services</h4>
+                <ul>
+                    <li><a href="#">Income Tax Filing</a></li>
+                    <li><a href="#">VAT Services</a></li>
+                    <li><a href="#">Tax Planning</a></li>
+                    <li><a href="#">Business Consultation</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <ul>
+                    <li><a href="tel:+8801917179881">📞 +880 1917-179881</a></li>
+                    <li><a href="mailto:shihab71284@gmail.com">📧 shihab71284@gmail.com</a></li>
+                    <li>Location: Chittagong, Bangladesh</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025-26 VATX - Professional Tax Consultancy. All rights reserved.</p>
+            <div>
+                <span class="footer-badge">ISO Certified</span>
+                <span class="footer-badge">Licensed</span>
+                <span class="footer-badge">Professional</span>
+            </div>
+            <p style="margin-top: 15px; font-size: 12px; color: rgba(255,255,255,0.6);">
+                Privacy Policy | Terms & Conditions | Disclaimer
+            </p>
+        </div>
+    </div>
+
+    <!-- ===== CALCULATOR SCRIPT ===== -->
+    <script>
+    function calculateTax() {
+        const threshold = parseFloat(document.getElementById('taxType').value) || 375000;
+        const income = parseFloat(document.getElementById('income').value) || 0;
+        const taxableIncome = income - threshold;
+        const resDiv = document.getElementById('taxResult');
+        
+        // Input validation
+        if (income < 0) {
+            resDiv.innerHTML = '<strong>⚠️ Error:</strong> Income cannot be negative';
+            resDiv.classList.add('error');
+            resDiv.style.display = 'block';
+            return;
+        }
+
+        if (income === 0) {
+            resDiv.innerHTML = '<strong>Please enter your income</strong>';
+            resDiv.classList.add('error');
+            resDiv.style.display = 'block';
+            return;
+        }
+
+        if (taxableIncome <= 0) {
+            resDiv.innerHTML = '<strong>✓ Result:</strong> Your income is within the tax-free limit.<br><span class="calc-result-value">No Tax Payable</span>';
+            resDiv.classList.remove('error');
+        } else {
+            let tax = 0;
+            let remaining = taxableIncome;
+            let details = [];
+
+            // Slab 1: Next 1L @ 5%
+            const slab1 = Math.min(remaining, 100000);
+            const tax1 = slab1 * 0.05;
+            tax += tax1;
+            details.push(`First ৳${slab1.toLocaleString()} @ 5% = ৳${tax1.toLocaleString()}`);
+            remaining -= slab1;
+
+            // Slab 2: Next 3L @ 10%
+            if (remaining > 0) {
+                const slab2 = Math.min(remaining, 300000);
+                const tax2 = slab2 * 0.10;
+                tax += tax2;
+                details.push(`Next ৳${slab2.toLocaleString()} @ 10% = ৳${tax2.toLocaleString()}`);
+                remaining -= slab2;
+            }
+
+            // Slab 3: Next 4L @ 15%
+            if (remaining > 0) {
+                const slab3 = Math.min(remaining, 400000);
+                const tax3 = slab3 * 0.15;
+                tax += tax3;
+                details.push(`Next ৳${slab3.toLocaleString()} @ 15% = ৳${tax3.toLocaleString()}`);
+                remaining -= slab3;
+            }
+
+            // Slab 4: Beyond 8L @ 20%
+            if (remaining > 0) {
+                const tax4 = remaining * 0.20;
+                tax += tax4;
+                details.push(`Remaining ৳${remaining.toLocaleString()} @ 20% = ৳${tax4.toLocaleString()}`);
+            }
+
+            const effectiveRate = ((tax / income) * 100).toFixed(2);
+
+            resDiv.innerHTML = `
+                <strong>Taxable Income Breakdown:</strong><br>
+                <div style="font-size: 13px; margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.6); border-radius: 6px;">
+                    Annual Income: <strong>৳${income.toLocaleString()}</strong><br>
+                    Tax Exemption: <strong>৳${threshold.toLocaleString()}</strong><br>
+                    Taxable Amount: <strong>৳${taxableIncome.toLocaleString()}</strong>
+                </div>
+                <strong style="display: block; margin-top: 15px;">Tax Calculation:</strong>
+                <div style="font-size: 13px; margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.6); border-radius: 6px;">
+                    ${details.map(d => `${d}<br>`).join('')}
+                </div>
+                <strong style="display: block; margin-top: 12px;">Total Tax Payable:</strong>
+                <span class="calc-result-value">৳${tax.toLocaleString()}</span>
+                <div style="font-size: 12px; color: var(--text-gray); margin-top: 10px;">
+                    Effective Tax Rate: <strong>${effectiveRate}%</strong>
+                </div>
+            `;
+            resDiv.classList.remove('error');
+        }
+        resDiv.style.display = 'block';
+    }
+
+    // Allow Enter key to trigger calculation
+    document.getElementById('income')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') calculateTax();
+    });
+
+    // Format number input as user types
+    document.getElementById('income')?.addEventListener('input', function(e) {
+        if (this.value) {
+            this.value = this.value.replace(/\D/g, '');
+        }
+    });
+    </script>
+</body>
+</html>
