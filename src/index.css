@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+}
+
+@layer base {
+  body {
+    @apply bg-[#FBFBFA] text-zinc-900 antialiased selection:bg-brand-100 selection:text-brand-900;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+  
+  .neo-card {
+    @apply bg-white border border-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)];
+  }
+  
+  .btn-primary {
+    @apply bg-zinc-900 text-white hover:bg-zinc-800 transition-all duration-200 rounded-2xl px-6 py-3 font-semibold shadow-lg shadow-zinc-200 active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 transition-all duration-200 rounded-2xl px-6 py-3 font-semibold active:scale-[0.98];
+  }
+}
