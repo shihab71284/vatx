@@ -11,9 +11,10 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.29.0",
+    "@google/genai": "^1.50.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/cors": "^2.8.19",
+    "@types/multer": "^2.1.0",
     "@types/pdfkit": "^0.17.5",
     "@vitejs/plugin-react": "^5.0.4",
     "axios": "^1.13.6",
@@ -31,7 +32,9 @@
     "google-auth-library": "^10.6.1",
     "googleapis": "^171.4.0",
     "lucide-react": "^0.546.0",
+    "mammoth": "^1.12.0",
     "motion": "^12.23.24",
+    "multer": "^2.1.1",
     "pdfkit": "^0.17.2",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",

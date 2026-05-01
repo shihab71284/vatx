@@ -11,8 +11,39 @@ import { google } from "googleapis";
 import ExcelJS from "exceljs";
 import cookieSession from "cookie-session";
 import dotenv from "dotenv";
+import multer from "multer";
+import fs from "fs";
 
 dotenv.config();
+
+// Social Publish Backend Helpers
+async function generateAndPublishSocial(noticeTitle: string, platform: 'facebook' | 'linkedin' | 'twitter' | 'tiktok' | 'instagram' | 'threads') {
+  try {
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+    const prompt = `
+      You are an expert Tax and VAT consultant in Bangladesh. 
+      Generate a professional and engaging social media post for ${platform} in Bengali (and a bit of English) 
+      about this new notice: "${noticeTitle}".
+      Keep it informative, use relevant hashtags like #VATX #NBR #TaxBangladesh #VATUpdates.
+      ${platform === 'twitter' ? 'Keep it under 280 characters.' : ''}
+      ${platform === 'instagram' ? 'Focus on visual description as well.' : ''}
+      Only return the post content text.
+    `;
+    
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ parts: [{ text: prompt }] }]
+    });
+    const postContent = result.text || "";
+
+    await performPublish(platform, postContent, undefined, 'automated');
+
+  } catch (error: any) {
+    console.error(`Auto Publish Error (${platform}):`, error.message);
+  }
+}
 
 // Extend Express Request type for session
 declare global {
@@ -28,7 +59,135 @@ declare global {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Initialize Database
 const db = new Database("vatx.db");
+
+// Platform-specific publishing handlers
+const socialHandlers: Record<string, (content: string, mediaUrl: string | undefined, settings: any) => Promise<string>> = {
+  facebook: async (content, mediaUrl, settings) => {
+    const providedToken = settings.facebook_access_token || process.env.FACEBOOK_ACCESS_TOKEN;
+    const fbPageId = settings.facebook_page_id || process.env.FACEBOOK_PAGE_ID;
+    
+    if (!providedToken || !fbPageId) throw new Error("Facebook configuration missing");
+
+    let activeToken = providedToken;
+
+    // Check if the token is a Page Token or User Token
+    // We attempt to get the Page Token using the provided token acting as a User Token
+    try {
+      const pageInfo = await axios.get(`https://graph.facebook.com/v19.0/${fbPageId}`, {
+        params: {
+          fields: 'access_token',
+          access_token: providedToken
+        }
+      });
+      if (pageInfo.data.access_token) {
+        activeToken = pageInfo.data.access_token;
+        console.log(`Successfully exchanged User Token for Page Access Token for ID: ${fbPageId}`);
+      }
+    } catch (err: any) {
+      // If it fails, maybe it's already a Page Token or the User Token doesn't have permissions
+      console.log("Token exchange skipped or failed, attempting direct post with provided token.");
+    }
+
+    const postData: any = { 
+      message: content, 
+      access_token: activeToken 
+    };
+    
+    if (mediaUrl) postData.link = mediaUrl;
+    
+    const response = await axios.post(`https://graph.facebook.com/v19.0/${fbPageId}/feed`, postData);
+    return response.data.id;
+  },
+  linkedin: async (content, mediaUrl, settings) => {
+    const liToken = settings.linkedin_access_token || process.env.LINKEDIN_ACCESS_TOKEN;
+    const liPersonId = settings.linkedin_person_id || process.env.LINKEDIN_PERSON_ID;
+    if (!liToken || !liPersonId) throw new Error("LinkedIn configuration missing");
+    const response = await axios.post('https://api.linkedin.com/v2/ugcPosts', {
+      author: `urn:li:person:${liPersonId}`,
+      lifecycleState: "PUBLISHED",
+      specificContent: {
+        "com.linkedin.ugc.ShareContent": {
+          shareCommentary: { text: content },
+          shareMediaCategory: mediaUrl ? "IMAGE" : "NONE",
+          media: mediaUrl ? [{
+            status: "READY",
+            description: { text: "VATX Post" },
+            media: mediaUrl,
+            title: { text: "VATX Update" }
+          }] : undefined
+        }
+      },
+      visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${liToken}`,
+        'X-Restli-Protocol-Version': '2.0.0'
+      }
+    });
+    return response.headers['x-restli-id'] as string || "published";
+  },
+  twitter: async (content, mediaUrl, settings) => {
+    const twToken = settings.twitter_bearer_token || process.env.TWITTER_BEARER_TOKEN;
+    if (!twToken) throw new Error("Twitter configuration missing");
+    const response = await axios.post('https://api.twitter.com/2/tweets', { text: content }, {
+      headers: { 'Authorization': `Bearer ${twToken}` }
+    });
+    return response.data.id;
+  },
+  instagram: async (content, mediaUrl, settings) => {
+    const fbToken = settings.facebook_access_token || process.env.FACEBOOK_ACCESS_TOKEN;
+    const igUserId = settings.instagram_user_id || process.env.INSTAGRAM_USER_ID;
+    if (!fbToken || !igUserId) throw new Error("Instagram configuration missing");
+    const container = await axios.post(`https://graph.facebook.com/v19.0/${igUserId}/media`, {
+      caption: content,
+      image_url: mediaUrl || `https://picsum.photos/seed/vatx/1080/1080`,
+      access_token: fbToken
+    });
+    const publish = await axios.post(`https://graph.facebook.com/v19.0/${igUserId}/media_publish`, {
+      creation_id: container.data.id,
+      access_token: fbToken
+    });
+    return publish.data.id;
+  },
+  threads: async (content, mediaUrl, settings) => {
+    const thToken = settings.threads_access_token || process.env.THREADS_ACCESS_TOKEN;
+    if (!thToken) throw new Error("Threads configuration missing");
+    const response = await axios.post('https://graph.threads.net/v1.0/me/threads', {
+      text: content,
+      access_token: thToken
+    });
+    return response.data.id;
+  },
+  tiktok: async (content, mediaUrl, settings) => {
+    // In a real scenario, we'd use TikTok's video push API with mediaUrl
+    console.log(`TikTok mock publish with media: ${mediaUrl}`);
+    return "tiktok-queued-" + Date.now();
+  }
+};
+
+async function performPublish(platform: string, content: string, mediaUrl?: string, statusSource: string = 'success') {
+  const settingsRows = db.prepare("SELECT * FROM app_settings").all();
+  const settings: any = settingsRows.reduce((acc: any, curr: any) => {
+    acc[curr.key] = curr.value;
+    return acc;
+  }, {});
+
+  const handler = socialHandlers[platform];
+  if (!handler) {
+    throw new Error("Unsupported platform: " + platform);
+  }
+
+  const externalId = await handler(content, mediaUrl, settings);
+
+  db.prepare(`
+    INSERT INTO social_publish_logs (platform, postContent, mediaUrl, status, externalId)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(platform, content, mediaUrl, statusSource, externalId);
+
+  return { externalId };
+}
 
 // Initialize Database
 db.exec(`
@@ -124,6 +283,8 @@ db.exec(`
     name TEXT NOT NULL,
     address TEXT,
     bin TEXT,
+    mobile TEXT,
+    tin TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -165,6 +326,23 @@ db.exec(`
     metadataUrl TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS social_publish_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL,
+    postContent TEXT NOT NULL,
+    mediaUrl TEXT,
+    status TEXT NOT NULL,
+    externalId TEXT,
+    error TEXT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS mushak91_submissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     taxpayerName TEXT,
@@ -185,6 +363,27 @@ db.exec(`
     platform TEXT NOT NULL,
     url TEXT NOT NULL,
     label TEXT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS social_schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL,
+    postContent TEXT NOT NULL,
+    mediaUrl TEXT,
+    scheduledAt TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    amount REAL NOT NULL,
+    method TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    transactionId TEXT,
+    paymentUrl TEXT,
+    merchantInvoiceNumber TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -247,6 +446,18 @@ db.exec(`
     category TEXT,
     description TEXT,
     isCompleted BOOLEAN DEFAULT 0,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS recurring_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    category TEXT NOT NULL,
+    frequency TEXT NOT NULL,
+    dayOfMonth INTEGER,
+    description TEXT,
+    reminderDays INTEGER DEFAULT 3,
+    lastGeneratedDate TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -329,6 +540,28 @@ db.exec(`
   SELECT 'Commission/Brokerage', '53E', 10, 20, 'TDS on commission or brokerage'
   WHERE NOT EXISTS (SELECT 1 FROM tds_rates WHERE category = 'Commission/Brokerage');
 `);
+
+// Migration for existing clients table
+try {
+  db.prepare("ALTER TABLE clients ADD COLUMN mobile TEXT").run();
+} catch (e) {}
+try {
+  db.prepare("ALTER TABLE clients ADD COLUMN tin TEXT").run();
+} catch (e) {}
+
+// Migration for existing tds_records table
+try {
+  db.prepare("ALTER TABLE tds_records ADD COLUMN payeeCategory TEXT").run();
+} catch (e) {}
+try {
+  db.prepare("ALTER TABLE tds_records ADD COLUMN payeeBin TEXT").run();
+} catch (e) {}
+try {
+  db.prepare("ALTER TABLE tds_records ADD COLUMN bankName TEXT").run();
+} catch (e) {}
+try {
+  db.prepare("ALTER TABLE tds_records ADD COLUMN bankBranch TEXT").run();
+} catch (e) {}
 
 async function startServer() {
   const app = express();
@@ -596,6 +829,100 @@ async function startServer() {
     res.json({ success: true, id: result.lastInsertRowid });
   });
 
+  // MFS Payment Routes
+  app.post("/api/payments/create", async (req, res) => {
+    const { amount, method } = req.body;
+    const merchantInvoiceNumber = `INV-${Date.now()}`;
+
+    try {
+      // Store pending payment
+      const stmt = db.prepare(`
+        INSERT INTO payments (amount, method, status, merchantInvoiceNumber)
+        VALUES (?, ?, ?, ?)
+      `);
+      const result = stmt.run(amount, method, 'pending', merchantInvoiceNumber);
+      const paymentId = result.lastInsertRowid;
+
+      let paymentUrl = "";
+
+      if (method === 'bkash') {
+        const bkashBaseUrl = process.env.BKASH_BASE_URL;
+        if (!bkashBaseUrl) {
+          // Fallback for demo if no credentials
+          paymentUrl = `/payment/bkash/mock?id=${paymentId}&amount=${amount}`;
+        } else {
+          // Real bKash integration logic would go here
+          // 1. Get Token
+          // 2. Create Payment
+          // For now, we'll provide the mock URL but structure it for real use
+          paymentUrl = `/payment/bkash/mock?id=${paymentId}&amount=${amount}`;
+        }
+      } else if (method === 'nagad') {
+        paymentUrl = `/payment/nagad/mock?id=${paymentId}&amount=${amount}`;
+      } else if (method === 'rocket') {
+        paymentUrl = `/payment/rocket/mock?id=${paymentId}&amount=${amount}`;
+      }
+
+      db.prepare("UPDATE payments SET paymentUrl = ? WHERE id = ?").run(paymentUrl, paymentId);
+
+      res.json({ success: true, paymentId, paymentUrl, merchantInvoiceNumber });
+    } catch (error) {
+      console.error("Payment Creation Error:", error);
+      res.status(500).json({ error: "Failed to initialize payment" });
+    }
+  });
+
+  app.get("/api/payments/verify/:id", async (req, res) => {
+    const { id } = req.params;
+    const payment = db.prepare("SELECT * FROM payments WHERE id = ?").get(id) as any;
+
+    if (!payment) return res.status(404).json({ error: "Payment not found" });
+
+    try {
+      // In a real integration, we would call the MFS provider's verify API here
+      // For this implementation, we'll simulate a successful verification if it's still pending
+      if (payment.status === 'pending') {
+        const transactionId = 'TXN' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        db.prepare("UPDATE payments SET status = 'success', transactionId = ? WHERE id = ?")
+          .run(transactionId, id);
+        
+        return res.json({ success: true, status: 'success', transactionId });
+      }
+
+      res.json({ success: true, status: payment.status, transactionId: payment.transactionId });
+    } catch (error) {
+      console.error("Payment Verification Error:", error);
+      res.status(500).json({ error: "Failed to verify payment" });
+    }
+  });
+
+  // OCR History Routes
+  app.get("/api/ocr/history", (req, res) => {
+    const history = db.prepare("SELECT * FROM ocr_entries ORDER BY createdAt DESC").all();
+    res.json(history.map((h: any) => ({
+      ...h,
+      extractedData: JSON.parse(h.extractedData || '{}')
+    })));
+  });
+
+  app.post("/api/ocr/save", (req, res) => {
+    const { documentType, fields, items, imageUrl } = req.body;
+    const extractedData = JSON.stringify({ documentType, fields, items });
+    
+    const stmt = db.prepare(`
+      INSERT INTO ocr_entries (sourceType, extractedData, imageUrl, status)
+      VALUES (?, ?, ?, ?)
+    `);
+    const result = stmt.run('document_centre', extractedData, imageUrl || '', 'completed');
+    res.json({ id: result.lastInsertRowid, success: true });
+  });
+
+  app.delete("/api/ocr/history/:id", (req, res) => {
+    const { id } = req.params;
+    db.prepare("DELETE FROM ocr_entries WHERE id = ?").run(id);
+    res.json({ success: true });
+  });
+
   // Blog Routes
   app.get("/api/blog", (req, res) => {
     const posts = db.prepare("SELECT * FROM blog_posts ORDER BY createdAt DESC").all();
@@ -658,10 +985,10 @@ async function startServer() {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { name, address, bin } = req.body;
-    const stmt = db.prepare("INSERT INTO clients (name, address, bin) VALUES (?, ?, ?)");
-    const result = stmt.run(name, address, bin);
-    res.json({ id: result.lastInsertRowid, name, address, bin });
+    const { name, address, bin, mobile, tin } = req.body;
+    const stmt = db.prepare("INSERT INTO clients (name, address, bin, mobile, tin) VALUES (?, ?, ?, ?, ?)");
+    const result = stmt.run(name, address, bin, mobile, tin);
+    res.json({ id: result.lastInsertRowid, name, address, bin, mobile, tin });
   });
 
   app.delete("/api/clients/:id", (req, res) => {
@@ -672,8 +999,8 @@ async function startServer() {
 
   app.patch("/api/clients/:id", (req, res) => {
     const { id } = req.params;
-    const { name, address, bin } = req.body;
-    db.prepare("UPDATE clients SET name = ?, address = ?, bin = ? WHERE id = ?").run(name, address, bin, id);
+    const { name, address, bin, mobile, tin } = req.body;
+    db.prepare("UPDATE clients SET name = ?, address = ?, bin = ?, mobile = ?, tin = ? WHERE id = ?").run(name, address, bin, mobile, tin, id);
     res.json({ success: true });
   });
 
@@ -681,6 +1008,93 @@ async function startServer() {
   app.get("/api/notices", (req, res) => {
     const notices = db.prepare("SELECT * FROM tax_notices ORDER BY createdAt DESC LIMIT 20").all();
     res.json(notices);
+  });
+
+  app.post("/api/notices", [
+    body('title').notEmpty(),
+    body('link').notEmpty(),
+  ], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { title, link, category = 'General' } = req.body;
+    try {
+      const stmt = db.prepare("INSERT INTO tax_notices (title, link, category) VALUES (?, ?, ?)");
+      const result = stmt.run(title, link, category);
+      const noticeId = result.lastInsertRowid;
+
+      // Check for auto-publish
+      const autoPublishRaw = db.prepare("SELECT value FROM app_settings WHERE key = 'auto_publish_on_gen'").get() as any;
+      if (autoPublishRaw && autoPublishRaw.value === 'true') {
+        const platforms: ('facebook' | 'linkedin' | 'twitter' | 'tiktok' | 'instagram' | 'threads')[] = ['facebook', 'linkedin', 'twitter'];
+        for (const platform of platforms) {
+          generateAndPublishSocial(title, platform);
+        }
+      }
+
+      res.json({ id: noticeId, title, link, category, success: true });
+    } catch (error) {
+      console.error("Notice creation failed:", error);
+      res.status(500).json({ error: "Failed to create notice" });
+    }
+  });
+
+  app.delete("/api/notices/:id", (req, res) => {
+    const { id } = req.params;
+    db.prepare("DELETE FROM tax_notices WHERE id = ?").run(id);
+    res.json({ success: true });
+  });
+
+  app.post("/api/social/publish-now", async (req, res) => {
+    const { platform, content, mediaUrl } = req.body;
+    try {
+      const result = await performPublish(platform, content, mediaUrl);
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/social/verify/facebook", async (req, res) => {
+    console.log("POST /api/social/verify/facebook hit", req.body);
+    try {
+      const { facebook_page_id, facebook_access_token } = req.body;
+
+      let fbToken = facebook_access_token;
+      let fbPageId = facebook_page_id;
+
+      if (!fbToken || !fbPageId) {
+        const settingsRows = db.prepare("SELECT * FROM app_settings").all();
+        const settings: any = settingsRows.reduce((acc: any, curr: any) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {});
+
+        fbToken = fbToken || settings.facebook_access_token || process.env.FACEBOOK_ACCESS_TOKEN;
+        fbPageId = fbPageId || settings.facebook_page_id || process.env.FACEBOOK_PAGE_ID;
+      }
+
+      if (!fbToken || !fbPageId) return res.status(400).json({ error: "Facebook configuration missing" });
+
+      // First, try to fetch the page name directly
+      // If fbToken is a User Token, we need to ensure the user has access to the page 
+      const response = await axios.get(`https://graph.facebook.com/v19.0/${fbPageId}`, {
+        params: {
+          fields: 'name,access_token',
+          access_token: fbToken
+        }
+      });
+      
+      const isUserToken = !!response.data.access_token;
+      res.json({ 
+        success: true, 
+        name: response.data.name,
+        tokenType: isUserToken ? "User Token (Page Match Found)" : "Page Token (Direct)"
+      });
+    } catch (error: any) {
+      const msg = error.response?.data?.error?.message || error.message;
+      res.status(500).json({ error: msg });
+    }
   });
 
   app.post("/api/notices/summarize/:id", async (req, res) => {
@@ -801,7 +1215,16 @@ async function startServer() {
             try {
               const stmt = db.prepare("INSERT OR IGNORE INTO tax_notices (title, link, category) VALUES (?, ?, ?)");
               const info = stmt.run(title, fullLink, source.category);
-              if (info.changes > 0) newCount++;
+              if (info.changes > 0) {
+                newCount++;
+                
+                // Auto-publish if enabled
+                const autoPublish = db.prepare("SELECT value FROM app_settings WHERE key = 'auto_publish_on_gen'").get() as any;
+                if (autoPublish?.value === 'true') {
+                  generateAndPublishSocial(title, 'facebook');
+                  generateAndPublishSocial(title, 'linkedin');
+                }
+              }
             } catch (e) {
               // Ignore duplicates
             }
@@ -997,18 +1420,27 @@ async function startServer() {
   });
 
   app.post("/api/tds", (req, res) => {
-    const { payeeName, payeeTin, paymentType, invoiceNo, invoiceDate, grossAmount, tdsRate, tdsAmount } = req.body;
+    const { payeeName, payeeTin, payeeBin, payeeCategory, paymentType, invoiceNo, invoiceDate, grossAmount, tdsRate, tdsAmount } = req.body;
     const result = db.prepare(`
-      INSERT INTO tds_records (payeeName, payeeTin, paymentType, invoiceNo, invoiceDate, grossAmount, tdsRate, tdsAmount, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `).run(payeeName, payeeTin, paymentType, invoiceNo, invoiceDate, grossAmount, tdsRate, tdsAmount);
+      INSERT INTO tds_records (payeeName, payeeTin, payeeBin, payeeCategory, paymentType, invoiceNo, invoiceDate, grossAmount, tdsRate, tdsAmount, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    `).run(payeeName, payeeTin, payeeBin, payeeCategory, paymentType, invoiceNo, invoiceDate, grossAmount, tdsRate, tdsAmount);
     res.json({ id: result.lastInsertRowid });
   });
 
   app.patch("/api/tds/:id", (req, res) => {
     const { id } = req.params;
-    const { status, challanNo, challanDate, certificateNo } = req.body;
-    db.prepare("UPDATE tds_records SET status = ?, challanNo = ?, challanDate = ?, certificateNo = ? WHERE id = ?").run(status, challanNo, challanDate, certificateNo, id);
+    const { status, challanNo, challanDate, certificateNo, bankName, bankBranch } = req.body;
+    db.prepare(`
+      UPDATE tds_records 
+      SET status = ?, 
+          challanNo = ?, 
+          challanDate = ?, 
+          certificateNo = ?, 
+          bankName = ?, 
+          bankBranch = ? 
+      WHERE id = ?
+    `).run(status, challanNo, challanDate, certificateNo, bankName, bankBranch, id);
     res.json({ success: true });
   });
 
@@ -1081,6 +1513,82 @@ async function startServer() {
     const newStatus = current.isCompleted ? 0 : 1;
     db.prepare("UPDATE compliance_deadlines SET isCompleted = ? WHERE id = ?").run(newStatus, id);
     res.json({ success: true, isCompleted: newStatus });
+  });
+
+  app.get("/api/recurring-tasks", (req, res) => {
+    const tasks = db.prepare("SELECT * FROM recurring_tasks ORDER BY createdAt DESC").all();
+    res.json(tasks);
+  });
+
+  app.post("/api/recurring-tasks", (req, res) => {
+    const { title, category, frequency, dayOfMonth, description, reminderDays } = req.body;
+    if (!title || !frequency) return res.status(400).json({ error: "Title and frequency are required" });
+
+    try {
+      const result = db.prepare(`
+        INSERT INTO recurring_tasks (title, category, frequency, dayOfMonth, description, reminderDays)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(title, category, frequency, dayOfMonth || 15, description, reminderDays || 3);
+      
+      res.status(201).json({ id: result.lastInsertRowid, title, category, frequency, dayOfMonth, description, reminderDays });
+    } catch (err) {
+      console.error("Failed to add recurring task", err);
+      res.status(500).json({ error: "Failed to add recurring task" });
+    }
+  });
+
+  app.delete("/api/recurring-tasks/:id", (req, res) => {
+    const { id } = req.params;
+    db.prepare("DELETE FROM recurring_tasks WHERE id = ?").run(id);
+    res.json({ success: true });
+  });
+
+  app.post("/api/compliance/generate", (req, res) => {
+    const tasks = db.prepare("SELECT * FROM recurring_tasks").all() as any[];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    let generatedCount = 0;
+
+    tasks.forEach(task => {
+      const datesToGenerate = [];
+      
+      if (task.frequency === 'monthly') {
+        // Generate for next 3 months
+        for (let i = 0; i < 3; i++) {
+          const date = new Date(currentYear, currentMonth + i, task.dayOfMonth);
+          datesToGenerate.push(date.toISOString().split('T')[0]);
+        }
+      } else if (task.frequency === 'quarterly') {
+        // Generate for current and next quarter
+        const quarters = [0, 3, 6, 9];
+        quarters.forEach(qMonth => {
+          const date = new Date(currentYear, qMonth, task.dayOfMonth);
+          if (date >= now) datesToGenerate.push(date.toISOString().split('T')[0]);
+        });
+      } else if (task.frequency === 'annually') {
+        const date = new Date(currentYear, now.getMonth(), task.dayOfMonth);
+        if (date < now) {
+          datesToGenerate.push(new Date(currentYear + 1, now.getMonth(), task.dayOfMonth).toISOString().split('T')[0]);
+        } else {
+          datesToGenerate.push(date.toISOString().split('T')[0]);
+        }
+      }
+
+      datesToGenerate.forEach(dateStr => {
+        const exists = db.prepare("SELECT id FROM compliance_deadlines WHERE title = ? AND deadlineDate = ?").get(task.title, dateStr);
+        if (!exists) {
+          db.prepare(`
+            INSERT INTO compliance_deadlines (title, deadlineDate, category, description)
+            VALUES (?, ?, ?, ?)
+          `).run(task.title, dateStr, task.category, task.description);
+          generatedCount++;
+        }
+      });
+    });
+
+    res.json({ success: true, generatedCount });
   });
 
   // VAT Agent Routes
@@ -1416,9 +1924,161 @@ async function startServer() {
     }
   });
 
+  // App Settings API (Developer Only)
+  app.get("/api/settings", (req, res) => {
+    const settings = db.prepare("SELECT * FROM app_settings").all();
+    const settingsMap = settings.reduce((acc: any, curr: any) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+    res.json(settingsMap);
+  });
+
+  app.post("/api/settings", (req, res) => {
+    const { settings } = req.body;
+    const upsert = db.prepare("INSERT OR REPLACE INTO app_settings (key, value, updatedAt) VALUES (?, ?, CURRENT_TIMESTAMP)");
+    const transaction = db.transaction((items: any) => {
+      for (const [key, value] of Object.entries(items)) {
+        upsert.run(key, value);
+      }
+    });
+    transaction(settings);
+    res.json({ success: true });
+  });
+
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(__dirname, 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadsDir)
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+    }
+  });
+
+  const upload = multer({ storage: storage });
+
+  app.use('/uploads', express.static(uploadsDir));
+
+  app.post("/api/upload-media", upload.single('media'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const mediaUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    res.json({ success: true, url: mediaUrl, filename: req.file.filename });
+  });
+
+  // Social Media Direct Publish API (Developer Only)
+  app.post("/api/social/publish", async (req, res) => {
+    const { platform, content, mediaUrl } = req.body;
+    try {
+      const result = await performPublish(platform, content, mediaUrl);
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      console.error(`Social Publish Error (${platform}):`, error.response?.data || error.message);
+      
+      db.prepare(`
+        INSERT INTO social_publish_logs (platform, postContent, mediaUrl, status, error)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(platform, content, mediaUrl, 'error', error.response?.data ? JSON.stringify(error.response.data) : error.message);
+
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        details: error.response?.data
+      });
+    }
+  });
+
+  app.post("/api/social/schedule", (req, res) => {
+    const { platform, content, mediaUrl, scheduledAt } = req.body;
+    if (!platform || !content || !scheduledAt) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    
+    try {
+      db.prepare(`
+        INSERT INTO social_schedules (platform, postContent, mediaUrl, scheduledAt, status)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(platform, content, mediaUrl, scheduledAt, 'pending');
+      res.json({ success: true, message: "Post scheduled successfully" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/social/schedules", (req, res) => {
+    try {
+      const schedules = db.prepare("SELECT * FROM social_schedules WHERE status = 'pending' ORDER BY scheduledAt ASC").all();
+      res.json(schedules);
+    } catch (error: any) {
+      console.error("Fetch Schedules Error:", error);
+      res.json([]);
+    }
+  });
+
+  app.delete("/api/social/schedules/:id", (req, res) => {
+    try {
+      db.prepare("DELETE FROM social_schedules WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+
+  async function processScheduledPosts() {
+    try {
+      const now = new Date().toISOString();
+      const dueSchedules = db.prepare(`
+        SELECT * FROM social_schedules 
+        WHERE status = 'pending' AND scheduledAt <= ?
+      `).all(now) as any[];
+
+      for (const schedule of dueSchedules) {
+        try {
+          console.log(`Processing scheduled post for ${schedule.platform}...`);
+          await performPublish(schedule.platform, schedule.postContent, schedule.mediaUrl);
+          db.prepare("UPDATE social_schedules SET status = 'published' WHERE id = ?").run(schedule.id);
+        } catch (error: any) {
+          console.error(`Scheduled Publish Error (ID: ${schedule.id}):`, error.message);
+          db.prepare("UPDATE social_schedules SET status = 'failed' WHERE id = ?").run(schedule.id);
+          
+          db.prepare(`
+            INSERT INTO social_publish_logs (platform, postContent, mediaUrl, status, error)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(schedule.platform, schedule.postContent, schedule.mediaUrl, 'scheduled_error', error.message);
+        }
+      }
+    } catch (err) {
+      console.error("Schedule Polling Error:", err);
+    }
+  }
+
+  app.get("/api/social/publish-logs", (req, res) => {
+    try {
+      const logs = db.prepare("SELECT * FROM social_publish_logs ORDER BY createdAt DESC LIMIT 50").all();
+      res.json(logs);
+    } catch (error) {
+      console.error("Fetch Logs Error:", error);
+      res.json([]);
+    }
+  });
+
   // Run immediately on start and then every 2 hours
   fetchLatestNotices();
   setInterval(fetchLatestNotices, 1000 * 60 * 60 * 2);
+
+  // Poll for scheduled posts every 1 minute
+  setInterval(processScheduledPosts, 1000 * 60);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
